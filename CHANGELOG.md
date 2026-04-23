@@ -15,6 +15,39 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - sshfs / scp quick actions
 - Unit tests for parser and argv builder
 
+## [0.3.0] - 2026-04-24
+
+Major UI redesign: dark tech theme, card-based details panel, status dots,
+and key-pill shortcut bar.
+
+### Added
+- **Dark tech theme** with neon cyan (`#7FDBFF`) + purple (`#AA82FF`)
+  accents on a near-black blue background (`#0F111A`).
+- **Status dots** on every host row: green (used within 24h), blue (within
+  a week), grey (older / never), yellow when a jump host is present.
+- **Card-based details panel** split into `CONNECTION`, `META`, `USAGE`,
+  `SSH COMMAND`, `SHORTCUTS`, `ABOUT` sections.
+- **Iconified fields** in details: 🌐 host · 👤 user · 🔌 port · 🔑 key ·
+  ↪ jump · 📝 note · ⚙ extra.
+- **Group pills** (colored background) and **tag chips** in details.
+- **Shortcut key-pills** rendered as keycap-style badges with
+  action-semantic colors (connect=green, delete=red, help=yellow, etc.).
+- **About / copyright block** fixed at the bottom of details: version,
+  author, repo URL, MIT license.
+- **ASCII banner + about card** when no host is selected (empty filter
+  state still shows something useful).
+- **Split header**: left panel shows app title + search state, right
+  panel shows live stats `⚡ N hosts · ⇅ sort · ◉ details`.
+- **Key-pill footer** in normal mode replaces the plain text hints.
+
+### Changed
+- `user@host:port` rendered with distinct colors per component (purple /
+  green / blue) instead of a single green run.
+- Empty-state prompts upgraded to keycap-styled buttons (`a`, `ssh-menu
+  import` as highlighted pills).
+- Form editor title becomes a pill badge.
+- Help overlay shortcuts all rendered in keycap style.
+
 ## [0.2.1] - 2026-04-24
 
 Visual polish release.
@@ -147,7 +180,8 @@ help overlay, and quick-jump. Config model is backward-compatible.
   - `x86_64-pc-windows-msvc`
 - **MIT License**.
 
-[Unreleased]: https://github.com/Aidan-996/ssh-menu/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Aidan-996/ssh-menu/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Aidan-996/ssh-menu/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Aidan-996/ssh-menu/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.0...v0.1.1
