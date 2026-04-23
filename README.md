@@ -231,6 +231,8 @@ cargo build --release
 
 ## 🖼️ 界面速览
 
+![ssh-menu 实际界面](assets/ex_ssh_menu.png)
+
 ```
 ┌─ CONTROL PANEL ────────────────┬────────────────────────────────────┐
 │ ◆ SSH·MENU  v0.4.2  [?] 帮助 │ │          ⚡ 12 主机 · ⇅ 排序 · ◉ │
