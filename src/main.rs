@@ -1,6 +1,7 @@
+//! ssh-menu: interactive TUI SSH connection manager.
+
 mod config;
-mod connect;
-mod ssh_config;
+mod ssh;
 mod tui;
 
 use anyhow::{Context, Result};
@@ -36,9 +37,7 @@ enum Cmd {
         from: Option<PathBuf>,
     },
     /// Connect directly to a host by name, no TUI
-    Connect {
-        name: String,
-    },
+    Connect { name: String },
     /// Print the resolved config file path
     Path,
 }
@@ -64,11 +63,11 @@ fn main() -> Result<()> {
             let src = from.unwrap_or_else(|| {
                 dirs::home_dir().unwrap_or_default().join(".ssh/config")
             });
-            let incoming = ssh_config::parse_ssh_config(&src)
+            let incoming = ssh::parse_ssh_config(&src)
                 .with_context(|| format!("parse {}", src.display()))?;
             let n_in = incoming.len();
             let mut cfg = config::load(&cfg_path)?;
-            let (added, skipped) = ssh_config::merge_into(&mut cfg, incoming);
+            let (added, skipped) = ssh::merge_into(&mut cfg, incoming);
             config::save(&cfg_path, &cfg)?;
             println!("parsed {} entries from {} — added {}, skipped {} (already present)",
                 n_in, src.display(), added, skipped);
@@ -79,7 +78,7 @@ fn main() -> Result<()> {
             let Some(h) = cfg.hosts.iter().find(|h| h.name == name).cloned() else {
                 anyhow::bail!("host '{}' not found", name);
             };
-            let code = connect::connect(&cfg, &h)?;
+            let code = ssh::connect(&cfg, &h)?;
             std::process::exit(code);
         }
         Cmd::Tui => {
@@ -93,9 +92,9 @@ fn main() -> Result<()> {
             }
             let picked = tui::run(cfg.clone(), cfg_path.clone())?;
             if let Some(h) = picked {
-                let args = connect::build_ssh_args(&cfg, &h);
+                let args = ssh::build_ssh_args(&cfg, &h);
                 eprintln!("$ ssh {}", args.join(" "));
-                let code = connect::connect(&cfg, &h)?;
+                let code = ssh::connect(&cfg, &h)?;
                 std::process::exit(code);
             }
         }

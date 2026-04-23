@@ -60,12 +60,10 @@ pub fn parse_ssh_config(path: &Path) -> Result<Vec<Host>> {
     if let Some(h) = cur {
         if !h.host.is_empty() { hosts.push(h); }
     }
-    // If HostName missing, fall back to name as host.
     for h in hosts.iter_mut() {
         if h.host.is_empty() { h.host = h.name.clone(); }
     }
-    // Dedup by name: keep last occurrence (matches OpenSSH "later overrides" semantics
-    // when the same Host alias appears multiple times).
+    // Dedup by name: keep last occurrence (OpenSSH "later overrides" semantics).
     let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut deduped: Vec<Host> = Vec::with_capacity(hosts.len());
     for h in hosts.into_iter().rev() {

@@ -12,7 +12,38 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - Export back to OpenSSH `~/.ssh/config`
 - Theme customization (color schemes)
 - Fuzzy matching (currently substring only)
-- Unit tests for `ssh_config` parser and `build_ssh_args`
+- Unit tests for `ssh::import` parser and `ssh::connect::build_ssh_args`
+
+## [0.1.1] - 2026-04-24
+
+### Fixed
+- **Duplicate host entries on import.** When `~/.ssh/config` contained the same
+  `Host` alias multiple times, every occurrence was imported. Now dedup by name
+  keeping the **last** occurrence, matching OpenSSH's "later overrides"
+  semantics.
+
+### Added
+- **Robust `ssh` executable discovery.** Previously `Command::new("ssh")` would
+  fail with an opaque "program not found" in terminals where `ssh` was not on
+  `PATH` (typical in Windows CMD / PowerShell without OpenSSH Client installed).
+  The new fallback chain is:
+  1. `$SSH_MENU_SSH` environment variable (manual override).
+  2. `ssh` on `PATH` (probed via `ssh -V`).
+  3. Well-known Windows paths: `System32\OpenSSH\ssh.exe`, Git for Windows, etc.
+  4. Well-known Unix paths: `/usr/bin/ssh`, `/usr/local/bin/ssh`, homebrew.
+- Clear install guidance printed when no `ssh` binary can be located.
+- Bilingual README (Chinese first, English second) with a release-history
+  section.
+
+### Changed
+- **Modular code structure.** The flat `src/*.rs` layout was refactored into
+  three self-contained modules:
+  - `config/` — `model` (structs + helpers) and `store` (load/save/path).
+  - `ssh/` — `connect` (argv + ssh spawn) and `import` (openssh config parser).
+  - `tui/` — `app` (state machine), `form` (add/edit state), `events`
+    (keyboard dispatch), `view` (rendering), `runtime` (terminal lifecycle +
+    event loop).
+  No behavior change; internal only.
 
 ## [0.1.0] - 2026-04-24
 
@@ -41,5 +72,6 @@ this project adheres to [Semantic Versioning](https://semver.org/).
   - `x86_64-pc-windows-msvc`
 - **MIT License**.
 
-[Unreleased]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Aidan-996/ssh-menu/releases/tag/v0.1.0

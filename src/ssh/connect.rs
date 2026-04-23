@@ -26,7 +26,6 @@ pub fn build_ssh_args(cfg: &Config, target: &Host) -> Vec<String> {
             args.push("-J".into());
             args.push(jstr);
         } else {
-            // Pass raw (might be a host in ~/.ssh/config)
             args.push("-J".into());
             args.push(jname.clone());
         }
@@ -52,20 +51,17 @@ fn expand_tilde(p: &str) -> String {
     p.to_string()
 }
 
-/// Locate the `ssh` executable. Allows `$SSH_MENU_SSH` override, then PATH,
-/// then well-known Windows locations as a fallback.
+/// Locate the `ssh` executable with a multi-step fallback chain.
 fn find_ssh() -> Result<PathBuf> {
     if let Ok(p) = std::env::var("SSH_MENU_SSH") {
         let pb = PathBuf::from(p);
         if pb.exists() { return Ok(pb); }
     }
 
-    // Try PATH via spawning `ssh -V` (cheap probe).
     if Command::new("ssh").arg("-V").output().is_ok() {
         return Ok(PathBuf::from("ssh"));
     }
 
-    // Windows common locations
     #[cfg(windows)]
     {
         let candidates = [
@@ -81,7 +77,6 @@ fn find_ssh() -> Result<PathBuf> {
         }
     }
 
-    // Unix common locations
     #[cfg(unix)]
     {
         for c in ["/usr/bin/ssh", "/usr/local/bin/ssh", "/opt/homebrew/bin/ssh"] {
@@ -93,9 +88,9 @@ fn find_ssh() -> Result<PathBuf> {
     anyhow::bail!(
         "`ssh` executable not found.\n\n\
          Install OpenSSH client, or set $SSH_MENU_SSH to its full path.\n\
-         • Windows 10+:  Settings → Apps → Optional features → add 'OpenSSH Client'\n\
-         • macOS:        built-in, usually /usr/bin/ssh\n\
-         • Linux:        install the openssh-client package"
+         - Windows 10+:  Settings -> Apps -> Optional features -> add 'OpenSSH Client'\n\
+         - macOS:        built-in, usually /usr/bin/ssh\n\
+         - Linux:        install the openssh-client package"
     )
 }
 
