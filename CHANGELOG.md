@@ -7,12 +7,63 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Planned
-- SSH key picker / generator inside the TUI
 - Per-host pre/post hooks (notify on connect, run local command)
 - Export back to OpenSSH `~/.ssh/config`
 - Theme customization (color schemes)
 - Fuzzy matching (currently substring only)
-- Unit tests for `ssh::import` parser and `ssh::connect::build_ssh_args`
+- Multi-select + batch operations (bulk delete / bulk re-group)
+- sshfs / scp quick actions
+- Unit tests for parser and argv builder
+
+## [0.2.0] - 2026-04-24
+
+Major TUI overhaul with rich visuals, usage tracking, sorting, details pane,
+help overlay, and quick-jump. Config model is backward-compatible.
+
+### Added
+- **Colored host list** with semantic colors: index (dim), group (magenta),
+  name (cyan, bold), connection string (green), jump marker `↪` (yellow),
+  tags (blue). Selected row uses a bold blue highlight with a `▶` cursor.
+- **Details panel** (right 45% of body, toggle with `i`): shows every field
+  of the selected host, usage stats (`connects`, `last`), and the **full
+  equivalent `ssh` command** that would be executed.
+- **Usage tracking**:
+  - New `last_used` (RFC3339) and `use_count` fields on each host.
+  - Automatically incremented on every successful connect (both via TUI
+    Enter and `ssh-menu connect NAME`).
+  - Rendered as human-friendly relative time: `3h ago`, `2d ago`, `5mo ago`.
+  - Preserved across host edits.
+- **Four sort modes** cycled with `s`: name → group → recent → most-used.
+- **Help overlay** (`?`): full keyboard reference, rendered as a centered
+  popup with sections (Navigation / Actions / View / Exit / Search / Form).
+- **Quick-jump**:
+  - Digits `1`–`9` jump to the Nth visible host.
+  - Letters jump to the next host whose name starts with that letter
+    (case-insensitive, wraps).
+- **Form field hints**: active field shows a one-line description below it
+  (required / format / defaults).
+- **View equivalent ssh command**: press `y` in normal mode to display the
+  `ssh` invocation for the selected host in the status bar.
+- **PageUp/PageDown** scroll 10 items at a time.
+- **Home/End** as aliases for `g`/`G`.
+- **Ctrl-U** clears the current input (both search and form fields).
+- **Smart search Enter**: if exactly one entry matches, pressing Enter in
+  search mode connects directly.
+- **Header chip** shows total host count, current sort mode, and whether
+  the details panel is on.
+- **Empty-state guidance**: friendly messages when the host list is empty
+  or a filter has no matches.
+
+### Changed
+- **Delete key**: now `D` (Shift+d) instead of `d`, to avoid accidental
+  deletes. The confirmation prompt now starts with a `⚠` glyph to emphasize
+  the irreversible action.
+- **Status bar** colorizes by context: cyan for search/form/help, red for
+  confirm, yellow for general status.
+- **Title bar** shows app name + version + live stats.
+
+### Dependencies
+- Added `time = "0.3"` for RFC3339 timestamps and relative time rendering.
 
 ## [0.1.1] - 2026-04-24
 
@@ -72,6 +123,7 @@ this project adheres to [Semantic Versioning](https://semver.org/).
   - `x86_64-pc-windows-msvc`
 - **MIT License**.
 
-[Unreleased]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Aidan-996/ssh-menu/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Aidan-996/ssh-menu/releases/tag/v0.1.0

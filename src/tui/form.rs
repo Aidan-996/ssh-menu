@@ -14,6 +14,7 @@ impl FormState {
             user: "root".into(), port: 22,
             key: None, group: None, tags: vec![],
             jump: None, note: None, extra: vec![],
+            last_used: None, use_count: 0,
         };
         let src = h.unwrap_or(&h_def);
         Self {
@@ -48,6 +49,7 @@ impl FormState {
             name, host,
             user: { let v = get(2); if v.is_empty() { "root".into() } else { v } },
             port, key, group, tags, jump, note, extra: vec![],
+            last_used: None, use_count: 0,
         })
     }
 }

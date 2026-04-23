@@ -51,6 +51,8 @@ jobs:
       - name: Upload
         uses: softprops/action-gh-release@v2
         with:
+          body_path: CHANGELOG.md
+          generate_release_notes: false
           files: |
             ssh-menu-${{ matrix.target }}.tar.gz
             ssh-menu-${{ matrix.target }}.zip

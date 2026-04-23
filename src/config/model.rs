@@ -26,7 +26,15 @@ pub struct Host {
     pub note: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub extra: Vec<String>,
+    /// Last connected at, RFC3339 string. Written automatically on connect.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_used: Option<String>,
+    /// Total connection count. Written automatically on connect.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub use_count: u64,
 }
+
+fn is_zero(n: &u64) -> bool { *n == 0 }
 
 fn default_user() -> String { "root".into() }
 fn default_port() -> u16 { 22 }

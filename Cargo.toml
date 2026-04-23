@@ -1,6 +1,6 @@
 [package]
 name = "ssh-menu"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "Interactive TUI SSH connection manager"
 license = "MIT"
@@ -17,6 +17,7 @@ toml = "0.8"
 dirs = "5"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
+time = { version = "0.3", features = ["formatting", "parsing", "local-offset", "macros"] }
 
 [profile.release]
 opt-level = "z"

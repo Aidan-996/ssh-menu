@@ -74,10 +74,14 @@ fn main() -> Result<()> {
             println!("saved: {}", cfg_path.display());
         }
         Cmd::Connect { name } => {
-            let cfg = config::load(&cfg_path)?;
-            let Some(h) = cfg.hosts.iter().find(|h| h.name == name).cloned() else {
+            let mut cfg = config::load(&cfg_path)?;
+            let Some(idx) = cfg.hosts.iter().position(|h| h.name == name) else {
                 anyhow::bail!("host '{}' not found", name);
             };
+            let h = cfg.hosts[idx].clone();
+            cfg.hosts[idx].last_used = Some(ssh::now_rfc3339());
+            cfg.hosts[idx].use_count += 1;
+            let _ = config::save(&cfg_path, &cfg);
             let code = ssh::connect(&cfg, &h)?;
             std::process::exit(code);
         }
@@ -92,6 +96,13 @@ fn main() -> Result<()> {
             }
             let picked = tui::run(cfg.clone(), cfg_path.clone())?;
             if let Some(h) = picked {
+                // Update usage stats in the on-disk config.
+                let mut cfg2 = config::load(&cfg_path).unwrap_or(cfg.clone());
+                if let Some(idx) = cfg2.hosts.iter().position(|x| x.name == h.name) {
+                    cfg2.hosts[idx].last_used = Some(ssh::now_rfc3339());
+                    cfg2.hosts[idx].use_count += 1;
+                    let _ = config::save(&cfg_path, &cfg2);
+                }
                 let args = ssh::build_ssh_args(&cfg, &h);
                 eprintln!("$ ssh {}", args.join(" "));
                 let code = ssh::connect(&cfg, &h)?;

@@ -103,3 +103,26 @@ pub fn connect(cfg: &Config, target: &Host) -> Result<i32> {
         .with_context(|| format!("failed to launch {}", ssh.display()))?;
     Ok(status.code().unwrap_or(0))
 }
+
+/// Current timestamp as RFC3339 in local time, e.g. "2026-04-24T15:30:12+08:00".
+pub fn now_rfc3339() -> String {
+    use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+    let t = OffsetDateTime::now_local().unwrap_or_else(|_| OffsetDateTime::now_utc());
+    t.format(&Rfc3339).unwrap_or_default()
+}
+
+/// Human-friendly "time ago" from an RFC3339 string.
+pub fn time_ago(rfc3339: &str) -> String {
+    use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+    let Ok(past) = OffsetDateTime::parse(rfc3339, &Rfc3339) else { return rfc3339.to_string(); };
+    let now = OffsetDateTime::now_utc();
+    let secs = (now - past).whole_seconds();
+    if secs < 0 { return "just now".into(); }
+    match secs {
+        0..=59            => format!("{}s ago", secs),
+        60..=3599         => format!("{}m ago", secs / 60),
+        3600..=86399      => format!("{}h ago", secs / 3600),
+        86400..=2591999   => format!("{}d ago", secs / 86400),
+        _                 => format!("{}mo ago", secs / 2592000),
+    }
+}

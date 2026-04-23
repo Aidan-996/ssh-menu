@@ -41,6 +41,8 @@ pub fn parse_ssh_config(path: &Path) -> Result<Vec<Host>> {
                         jump: None,
                         note: None,
                         extra: vec![],
+                        last_used: None,
+                        use_count: 0,
                     });
                 }
             }
