@@ -2,6 +2,8 @@
 
 > Interactive TUI SSH connection manager. Never type a long `ssh -i ... -p ... user@host` again.
 
+**English** | [简体中文](README.zh-CN.md)
+
 [![crates.io](https://img.shields.io/crates/v/ssh-menu.svg)](https://crates.io/crates/ssh-menu)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
