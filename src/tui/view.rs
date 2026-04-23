@@ -2,25 +2,44 @@ use super::app::{App, Mode};
 use crate::ssh;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, List, ListItem, Paragraph, Wrap},
 };
 
 const FIELD_HINTS: &[(&str, &str)] = &[
-    ("name",  "Required. Display alias, any text (e.g. 'prod-db', '我的机房')."),
-    ("host",  "Required. IP or hostname (e.g. '10.0.0.5', 'db.example.com')."),
-    ("user",  "Login user. Default 'root'."),
-    ("port",  "SSH port. Default 22."),
-    ("key",   "Private key path. Supports '~/' (e.g. '~/.ssh/id_rsa'). Empty = default agent/keys."),
-    ("group", "Optional group for visual organization (e.g. 'prod', 'cloud')."),
-    ("tags",  "Comma-separated tags for search (e.g. 'mysql,linux'). Empty OK."),
-    ("jump",  "Optional ProxyJump: name of another host in this list. Empty for direct."),
-    ("note",  "Free-text note, shown in the details panel."),
+    ("name",  "必填 · 显示别名（支持中文）"),
+    ("host",  "必填 · IP 或主机名"),
+    ("user",  "登录用户，默认 root"),
+    ("port",  "SSH 端口，默认 22"),
+    ("key",   "私钥路径，支持 ~/，留空使用默认/Agent"),
+    ("group", "可选分组，用于视觉聚合"),
+    ("tags",  "可选标签，逗号分隔，可用于搜索"),
+    ("jump",  "可选跳板：填本列表里的另一台 name"),
+    ("note",  "自由备注，显示在详情面板"),
 ];
 
 fn field_hint(name: &str) -> &'static str {
     FIELD_HINTS.iter().find(|(k, _)| *k == name).map(|(_, v)| *v).unwrap_or("")
+}
+
+// Stable palette — swatches for group coloring (auto-assigned by hash).
+const GROUP_PALETTE: &[Color] = &[
+    Color::LightMagenta, Color::LightYellow, Color::LightCyan,
+    Color::LightGreen, Color::LightBlue, Color::LightRed,
+    Color::Magenta, Color::Yellow, Color::Cyan,
+];
+
+fn color_for_group(g: &str) -> Color {
+    let mut h: u32 = 5381;
+    for b in g.as_bytes() { h = h.wrapping_mul(33).wrapping_add(*b as u32); }
+    GROUP_PALETTE[(h as usize) % GROUP_PALETTE.len()]
+}
+
+fn rounded_block<'a>() -> Block<'a> {
+    Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
 }
 
 pub fn draw(f: &mut ratatui::Frame, app: &mut App) {
@@ -31,7 +50,6 @@ pub fn draw(f: &mut ratatui::Frame, app: &mut App) {
 
     draw_header(f, outer[0], app);
 
-    // Body: optional split into list + details
     if app.show_details && !app.filtered.is_empty() {
         let body = Layout::default()
             .direction(Direction::Horizontal)
@@ -45,7 +63,6 @@ pub fn draw(f: &mut ratatui::Frame, app: &mut App) {
 
     draw_footer(f, outer[2], app);
 
-    // Overlays
     match &app.mode {
         Mode::Form(_) => draw_form(f, app),
         Mode::Help => draw_help(f),
@@ -54,39 +71,53 @@ pub fn draw(f: &mut ratatui::Frame, app: &mut App) {
 }
 
 fn draw_header(f: &mut ratatui::Frame, area: Rect, app: &App) {
+    let accent = Color::Rgb(127, 219, 255); // soft cyan
+    let dim = Color::Rgb(110, 110, 110);
+
     let left = match &app.mode {
         Mode::Search => Line::from(vec![
-            Span::styled("/ ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-            Span::raw(&app.query),
-            Span::styled("_", Style::default().fg(Color::Cyan).add_modifier(Modifier::SLOW_BLINK)),
+            Span::styled("🔍  ", Style::default().fg(accent)),
+            Span::styled("/ ", Style::default().fg(accent).add_modifier(Modifier::BOLD)),
+            Span::styled(&app.query, Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+            Span::styled("▎", Style::default().fg(accent).add_modifier(Modifier::SLOW_BLINK)),
         ]),
         _ => if app.query.is_empty() {
             Line::from(vec![
-                Span::styled("🔌 ssh-menu", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-                Span::styled(format!(" v{}", env!("CARGO_PKG_VERSION")), Style::default().fg(Color::DarkGray)),
+                Span::styled(" 🔌 ", Style::default().fg(accent)),
+                Span::styled("ssh-menu", Style::default().fg(accent).add_modifier(Modifier::BOLD)),
+                Span::styled(format!("  v{}", env!("CARGO_PKG_VERSION")), Style::default().fg(dim)),
+                Span::styled("   按 ", Style::default().fg(dim)),
+                Span::styled("?", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(" 查看帮助", Style::default().fg(dim)),
             ])
         } else {
             Line::from(vec![
-                Span::styled("filter: ", Style::default().fg(Color::DarkGray)),
+                Span::styled(" 筛选: ", Style::default().fg(dim)),
                 Span::styled(&app.query, Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
             ])
         },
     };
 
-    let right = format!(
-        " {} hosts • sort:{} • details:{} ",
+    let right_text = format!(
+        "  {} 主机 · 排序 {} · 详情 {} ",
         app.cfg.hosts.len(),
         app.sort_by.label(),
-        if app.show_details { "on" } else { "off" },
+        if app.show_details { "●" } else { "○" },
     );
 
     let title = Line::from(vec![
-        Span::raw(" SSH Menu "),
-        Span::styled(right, Style::default().fg(Color::DarkGray)),
+        Span::styled("╼ ", Style::default().fg(accent)),
+        Span::styled("SSH Menu", Style::default().fg(accent).add_modifier(Modifier::BOLD)),
+        Span::styled(right_text, Style::default().fg(dim)),
+        Span::styled("╾", Style::default().fg(accent)),
     ]);
 
     f.render_widget(
-        Paragraph::new(left).block(Block::default().borders(Borders::ALL).title(title)),
+        Paragraph::new(left).block(
+            rounded_block()
+                .border_style(Style::default().fg(accent))
+                .title(title),
+        ),
         area,
     );
 }
@@ -96,113 +127,153 @@ fn draw_list(f: &mut ratatui::Frame, area: Rect, app: &mut App) {
         let msg = if app.cfg.hosts.is_empty() {
             vec![
                 Line::from(""),
-                Line::from(Span::styled("  No hosts yet.", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))),
+                Line::from(Span::styled("  ✨  还没有主机", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))),
                 Line::from(""),
-                Line::from("  Press  a  to add your first host"),
-                Line::from("  Or run  ssh-menu import  to pull from ~/.ssh/config"),
+                Line::from(vec![
+                    Span::styled("  按 ", Style::default()),
+                    Span::styled("a", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                    Span::styled(" 添加第一台主机", Style::default()),
+                ]),
+                Line::from(vec![
+                    Span::styled("  或运行 ", Style::default()),
+                    Span::styled("ssh-menu import", Style::default().fg(Color::Green)),
+                    Span::styled(" 从 ~/.ssh/config 导入", Style::default()),
+                ]),
                 Line::from(""),
-                Line::from(Span::styled("  Press ? for help", Style::default().fg(Color::DarkGray))),
+                Line::from(Span::styled("  按 ? 查看快捷键", Style::default().fg(Color::DarkGray).italic())),
             ]
         } else {
             vec![
                 Line::from(""),
-                Line::from(Span::styled("  No matches.", Style::default().fg(Color::Yellow))),
-                Line::from(format!("  query: {:?}", app.query)),
+                Line::from(Span::styled("  😶  没有匹配的主机", Style::default().fg(Color::Yellow))),
+                Line::from(Span::styled(format!("  筛选词：{:?}", app.query), Style::default().fg(Color::DarkGray))),
                 Line::from(""),
-                Line::from(Span::styled("  Esc to clear filter", Style::default().fg(Color::DarkGray))),
+                Line::from(Span::styled("  按 Esc 清空筛选", Style::default().fg(Color::DarkGray).italic())),
             ]
         };
         f.render_widget(
-            Paragraph::new(msg).block(Block::default().borders(Borders::ALL).title(" Hosts ")),
+            Paragraph::new(msg).block(rounded_block().title(" 主机列表 ")),
             area,
         );
         return;
     }
 
+    let accent = Color::Rgb(127, 219, 255);
     let items: Vec<ListItem> = app.filtered.iter().enumerate().filter_map(|(vis_idx, i)| {
         let h = app.cfg.hosts.get(*i)?;
-        let num = format!("{:>2} ", if vis_idx < 9 { format!("{}", vis_idx + 1) } else { "·".into() });
-        let group = format!("{:<10}", h.group.as_deref().unwrap_or(""));
+        let num_str = if vis_idx < 9 { format!("{}", vis_idx + 1) } else { "·".into() };
+        let num = format!(" {:>2} ", num_str);
+        let group_raw = h.group.as_deref().unwrap_or("-");
+        let group_col = if group_raw == "-" { Color::DarkGray } else { color_for_group(group_raw) };
+        let group = format!("{:<10}", truncate(group_raw, 10));
         let name = format!("{:<20}", truncate(&h.name, 20));
         let conn = if h.port == 22 {
             format!("{}@{}", h.user, h.host)
         } else {
             format!("{}@{}:{}", h.user, h.host, h.port)
         };
-        let jump = h.jump.as_deref().map(|j| format!(" ↪{}", j)).unwrap_or_default();
-        let tags = if h.tags.is_empty() { String::new() } else { format!(" [{}]", h.tags.join(",")) };
+        let jump = h.jump.as_deref().map(|j| format!(" ↪ {}", j)).unwrap_or_default();
+        let tags = if h.tags.is_empty() { String::new() } else { format!("  #{}", h.tags.join(" #")) };
+        let uses = if h.use_count > 0 { format!("  ×{}", h.use_count) } else { String::new() };
 
         let mut spans = vec![
             Span::styled(num, Style::default().fg(Color::DarkGray)),
-            Span::styled(group, Style::default().fg(Color::Magenta)),
-            Span::raw(" "),
-            Span::styled(name, Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-            Span::raw(" "),
-            Span::styled(conn, Style::default().fg(Color::Green)),
+            Span::styled(group, Style::default().fg(group_col)),
+            Span::styled(" │ ", Style::default().fg(Color::DarkGray)),
+            Span::styled(name, Style::default().fg(accent).add_modifier(Modifier::BOLD)),
+            Span::styled(conn, Style::default().fg(Color::LightGreen)),
         ];
         if !jump.is_empty() {
             spans.push(Span::styled(jump, Style::default().fg(Color::Yellow)));
         }
         if !tags.is_empty() {
-            spans.push(Span::styled(tags, Style::default().fg(Color::Blue)));
+            spans.push(Span::styled(tags, Style::default().fg(Color::Blue).italic()));
+        }
+        if !uses.is_empty() {
+            spans.push(Span::styled(uses, Style::default().fg(Color::DarkGray)));
         }
         Some(ListItem::new(Line::from(spans)))
     }).collect();
 
-    let title = format!(" Hosts ({}) ", app.filtered.len());
+    let title = Line::from(vec![
+        Span::styled(" 主机列表 ", Style::default().fg(accent).add_modifier(Modifier::BOLD)),
+        Span::styled(format!("({}) ", app.filtered.len()), Style::default().fg(Color::DarkGray)),
+    ]);
     let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(title))
-        .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
-        .highlight_symbol("▶ ");
+        .block(rounded_block().border_style(Style::default().fg(Color::DarkGray)).title(title))
+        .highlight_style(
+            Style::default()
+                .bg(Color::Rgb(30, 50, 80))
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(" ▶ ");
     f.render_stateful_widget(list, area, &mut app.list_state);
 }
 
 fn draw_details(f: &mut ratatui::Frame, area: Rect, app: &App) {
+    let accent = Color::Rgb(127, 219, 255);
     let Some(h) = app.selected_host() else {
-        f.render_widget(Block::default().borders(Borders::ALL).title(" Details "), area);
+        f.render_widget(rounded_block().title(" 详情 "), area);
         return;
     };
 
     let mut lines: Vec<Line> = vec![];
     let kv = |k: &str, v: String| Line::from(vec![
-        Span::styled(format!("{:<10}", k), Style::default().fg(Color::DarkGray)),
+        Span::styled(format!(" {:<8}", k), Style::default().fg(Color::DarkGray)),
+        Span::styled("  ", Style::default()),
         Span::raw(v),
     ]);
-    let kv_color = |k: &str, v: String, c: Color| Line::from(vec![
-        Span::styled(format!("{:<10}", k), Style::default().fg(Color::DarkGray)),
-        Span::styled(v, Style::default().fg(c).add_modifier(Modifier::BOLD)),
-    ]);
+    let kv_color = |k: &str, v: String, c: Color, bold: bool| {
+        let mut st = Style::default().fg(c);
+        if bold { st = st.add_modifier(Modifier::BOLD); }
+        Line::from(vec![
+            Span::styled(format!(" {:<8}", k), Style::default().fg(Color::DarkGray)),
+            Span::styled("  ", Style::default()),
+            Span::styled(v, st),
+        ])
+    };
 
-    lines.push(kv_color("name", h.name.clone(), Color::Cyan));
+    lines.push(Line::from(""));
+    lines.push(kv_color("name", h.name.clone(), accent, true));
     lines.push(kv("host", h.host.clone()));
     lines.push(kv("user", h.user.clone()));
     lines.push(kv("port", h.port.to_string()));
     if let Some(k) = &h.key { lines.push(kv("key", k.clone())); }
-    if let Some(g) = &h.group { lines.push(kv_color("group", g.clone(), Color::Magenta)); }
-    if !h.tags.is_empty() {
-        lines.push(kv_color("tags", h.tags.join(", "), Color::Blue));
+    if let Some(g) = &h.group {
+        lines.push(kv_color("group", g.clone(), color_for_group(g), true));
     }
-    if let Some(j) = &h.jump { lines.push(kv_color("jump", j.clone(), Color::Yellow)); }
+    if !h.tags.is_empty() {
+        lines.push(kv_color("tags", format!("#{}", h.tags.join(" #")), Color::Blue, false));
+    }
+    if let Some(j) = &h.jump { lines.push(kv_color("jump", j.clone(), Color::Yellow, true)); }
     if !h.extra.is_empty() { lines.push(kv("extra", h.extra.join(" "))); }
     if let Some(n) = &h.note { lines.push(kv("note", n.clone())); }
 
     lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled("── usage ──", Style::default().fg(Color::DarkGray))));
-    lines.push(kv("connects", h.use_count.to_string()));
-    lines.push(kv("last", h.last_used.as_deref().map(ssh::time_ago).unwrap_or_else(|| "never".into())));
+    lines.push(Line::from(Span::styled(" ─ 使用统计 ──────────", Style::default().fg(Color::DarkGray))));
+    lines.push(kv("次数", h.use_count.to_string()));
+    lines.push(kv("最近", h.last_used.as_deref().map(ssh::time_ago).unwrap_or_else(|| "从未".into())));
 
     lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled("── ssh command ──", Style::default().fg(Color::DarkGray))));
+    lines.push(Line::from(Span::styled(" ─ ssh 命令 ────────────", Style::default().fg(Color::DarkGray))));
     let args = ssh::build_ssh_args(&app.cfg, h);
-    lines.push(Line::from(Span::styled(
-        format!("ssh {}", args.join(" ")),
-        Style::default().fg(Color::Green),
-    )));
+    lines.push(Line::from(vec![
+        Span::styled(" $ ", Style::default().fg(Color::DarkGray)),
+        Span::styled(format!("ssh {}", args.join(" ")),
+            Style::default().fg(Color::LightGreen)),
+    ]));
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled("   按 Enter 连接 · y 复制到状态栏 · e 编辑",
+        Style::default().fg(Color::DarkGray).italic())));
 
+    let title = Line::from(vec![
+        Span::styled(" 详情 ", Style::default().fg(accent).add_modifier(Modifier::BOLD)),
+    ]);
     f.render_widget(
         Paragraph::new(lines)
             .wrap(Wrap { trim: false })
-            .block(Block::default().borders(Borders::ALL).title(" Details ")),
+            .block(rounded_block().border_style(Style::default().fg(Color::DarkGray)).title(title)),
         area,
     );
 }
@@ -210,45 +281,52 @@ fn draw_details(f: &mut ratatui::Frame, area: Rect, app: &App) {
 fn draw_footer(f: &mut ratatui::Frame, area: Rect, app: &App) {
     let (text, color) = match &app.mode {
         Mode::Search => (
-            "type to filter  •  Ctrl-U clear  •  ↑/↓ move  •  Enter connect (if 1 match)  •  Esc back".to_string(),
-            Color::Cyan,
+            " 输入过滤 · Ctrl-U 清空 · ↑/↓ 移动 · Enter 若只剩 1 条则连接 · Esc 返回".to_string(),
+            Color::Rgb(127, 219, 255),
         ),
         Mode::Form(_) => (
-            "Tab/↑/↓ field  •  Ctrl-U clear field  •  Enter or Ctrl-S save  •  Esc cancel".to_string(),
-            Color::Cyan,
+            " Tab/↑/↓ 切字段 · Ctrl-U 清空字段 · Enter 或 Ctrl-S 保存 · Esc 取消".to_string(),
+            Color::Rgb(127, 219, 255),
         ),
-        Mode::Confirm(m, _) => (m.clone(), Color::Red),
-        Mode::Help => ("press any key to close help".into(), Color::Cyan),
-        Mode::Normal => (app.status.clone(), Color::Yellow),
+        Mode::Confirm(m, _) => (format!(" {}", m), Color::LightRed),
+        Mode::Help => (" 按任意键关闭帮助".into(), Color::Rgb(127, 219, 255)),
+        Mode::Normal => (format!(" {}", app.status), Color::Yellow),
     };
     f.render_widget(
         Paragraph::new(text)
             .style(Style::default().fg(color))
-            .block(Block::default().borders(Borders::ALL)),
+            .block(rounded_block().border_style(Style::default().fg(Color::DarkGray))),
         area,
     );
 }
 
 fn draw_form(f: &mut ratatui::Frame, app: &App) {
     let Mode::Form(fs) = &app.mode else { return; };
-    let area = centered_rect(75, 80, f.area());
+    let accent = Color::Rgb(127, 219, 255);
+    let area = centered_rect(70, 80, f.area());
     f.render_widget(Clear, area);
 
-    let mut lines: Vec<Line> = vec![
-        Line::from(Span::styled(
-            if fs.editing_index.is_some() { "✎ Edit host" } else { "✚ Add new host" },
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
-        )),
-        Line::from(Span::styled(
-            "Required fields: name, host",
-            Style::default().fg(Color::DarkGray),
-        )),
-        Line::from(""),
-    ];
+    let mut lines: Vec<Line> = vec![];
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        Span::styled("  ", Style::default()),
+        Span::styled(
+            if fs.editing_index.is_some() { "✎  编辑主机" } else { "✚  添加主机" },
+            Style::default().fg(accent).add_modifier(Modifier::BOLD),
+        ),
+    ]));
+    lines.push(Line::from(Span::styled(
+        "    * 号标记的字段为必填",
+        Style::default().fg(Color::DarkGray).italic(),
+    )));
+    lines.push(Line::from(""));
+
     for (i, (k, v)) in fs.fields.iter().enumerate() {
         let active = i == fs.cursor;
-        let marker = if active { "▶ " } else { "  " };
+        let marker = if active { " ▶ " } else { "   " };
         let required = matches!(k.as_str(), "name" | "host");
+        let star = if required { "*" } else { " " };
+
         let label_style = if active {
             Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
         } else if required {
@@ -256,109 +334,117 @@ fn draw_form(f: &mut ratatui::Frame, app: &App) {
         } else {
             Style::default().fg(Color::Gray)
         };
-        let star = if required { "*" } else { " " };
-        let value_style = if active {
-            Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+
+        let value_span = if v.is_empty() && !active {
+            Span::styled("（空）", Style::default().fg(Color::DarkGray).italic())
+        } else if active {
+            Span::styled(v.clone(), Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
         } else {
-            Style::default().fg(Color::White)
+            Span::raw(v.clone())
         };
-        let placeholder = if v.is_empty() && !active {
-            Span::styled("(empty)", Style::default().fg(Color::DarkGray))
-        } else {
-            Span::styled(v.clone(), value_style)
-        };
+
         lines.push(Line::from(vec![
             Span::styled(marker, label_style),
-            Span::styled(format!("{}{:<7}", star, k), label_style),
+            Span::styled(format!("{}{:<6}", star, k), label_style),
             Span::styled(" │ ", Style::default().fg(Color::DarkGray)),
-            placeholder,
-            Span::styled(if active { "_" } else { "" }, Style::default().fg(Color::Yellow)),
+            value_span,
+            Span::styled(if active { "▎" } else { "" }, Style::default().fg(Color::Yellow)),
         ]));
         if active {
             lines.push(Line::from(vec![
-                Span::styled("            ", Style::default()),
-                Span::styled(field_hint(k), Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC)),
+                Span::styled("              ", Style::default()),
+                Span::styled("💡 ", Style::default().fg(Color::DarkGray)),
+                Span::styled(field_hint(k), Style::default().fg(Color::DarkGray).italic()),
             ]));
         }
     }
 
+    let title = Line::from(vec![
+        Span::styled(" 主机编辑器 ", Style::default().fg(accent).add_modifier(Modifier::BOLD)),
+    ]);
     f.render_widget(
         Paragraph::new(lines)
             .wrap(Wrap { trim: false })
-            .block(Block::default().borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan))
-                .title(" Host editor ")),
+            .block(rounded_block().border_style(Style::default().fg(accent)).title(title)),
         area,
     );
 }
 
 fn draw_help(f: &mut ratatui::Frame) {
-    let area = centered_rect(70, 80, f.area());
+    let accent = Color::Rgb(127, 219, 255);
+    let area = centered_rect(68, 82, f.area());
     f.render_widget(Clear, area);
 
-    let header = |s: &str| Line::from(Span::styled(
-        format!("── {} ──", s),
-        Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+    let section = |s: &str| Line::from(Span::styled(
+        format!("  ─ {} ──────────────────", s),
+        Style::default().fg(accent).add_modifier(Modifier::BOLD),
     ));
     let key = |k: &str, desc: &str| Line::from(vec![
-        Span::styled(format!("  {:<12}", k), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(format!("   {:<12}", k), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled("  ", Style::default()),
         Span::raw(desc.to_string()),
     ]);
 
     let lines: Vec<Line> = vec![
-        Line::from(Span::styled("ssh-menu — keyboard reference",
-            Style::default().fg(Color::White).add_modifier(Modifier::BOLD))),
         Line::from(""),
-        header("Navigation"),
-        key("↑/↓ j/k",    "move selection"),
-        key("PgUp/PgDn",  "jump 10 items"),
-        key("g / G",      "first / last"),
-        key("Home/End",   "first / last"),
-        key("1-9",        "jump to Nth visible"),
-        key("a-z",        "jump to next host starting with letter"),
+        Line::from(Span::styled(
+            "   ssh-menu — 快捷键参考",
+            Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+        )),
         Line::from(""),
-        header("Actions"),
-        key("Enter",      "connect to selected host"),
-        key("a",          "add a new host"),
-        key("e",          "edit selected host"),
-        key("D",          "delete selected host (Shift+d, asks y/N)"),
-        key("y",          "show the equivalent ssh command in status bar"),
+        section("移动"),
+        key("↑/↓ j/k",    "上下移动"),
+        key("PgUp/PgDn",  "翻 10 行"),
+        key("g / G",      "首项 / 末项"),
+        key("Home/End",   "首项 / 末项"),
+        key("1-9",        "跳到第 N 个可见项"),
+        key("a-z",        "跳到下一个首字母匹配的主机"),
         Line::from(""),
-        header("View"),
-        key("/",          "enter search mode (live filter)"),
-        key("s",          "cycle sort: name → group → recent → most-used"),
-        key("i",          "toggle details panel"),
-        key("r",          "refresh / re-filter"),
-        key("?",          "toggle this help"),
+        section("动作"),
+        key("Enter",      "连接当前选中"),
+        key("a",          "添加主机"),
+        key("e",          "编辑当前选中"),
+        key("D (Shift+d)","删除（二次确认）"),
+        key("y",          "状态栏显示等效 ssh 命令"),
         Line::from(""),
-        header("Exit"),
-        key("q / Esc",    "quit (or close overlay)"),
-        key("Ctrl-C",     "quit"),
+        section("视图"),
+        key("/",          "进入搜索模式"),
+        key("s",          "切换排序：名称→分组→最近→最多"),
+        key("i",          "切换详情面板"),
+        key("r",          "刷新 / 重新过滤"),
+        key("?",          "切换本帮助"),
         Line::from(""),
-        header("Search mode"),
-        key("any char",   "add to filter, live update"),
-        key("Backspace",  "delete last char"),
-        key("Ctrl-U",     "clear filter"),
-        key("Enter",      "connect if exactly 1 match"),
-        key("Esc",        "clear and return to normal"),
+        section("退出"),
+        key("q / Esc",    "退出（或关闭浮层）"),
+        key("Ctrl-C",     "强制退出"),
         Line::from(""),
-        header("Form mode (add / edit)"),
-        key("Tab / ↓",    "next field"),
-        key("Shift-Tab ↑","prev field"),
-        key("Ctrl-U",     "clear current field"),
-        key("Enter/Ctrl-S","save and close"),
-        key("Esc",        "cancel without saving"),
+        section("搜索模式"),
+        key("任意字符",   "加入过滤条件"),
+        key("Backspace",  "删除最后一个字符"),
+        key("Ctrl-U",     "清空过滤条件"),
+        key("Enter",      "仅剩 1 条时直接连接"),
+        key("Esc",        "清空并返回普通模式"),
         Line::from(""),
-        Line::from(Span::styled("Press ?, Esc, Enter or q to close this help",
-            Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC))),
+        section("表单模式"),
+        key("Tab / ↓",    "下一字段"),
+        key("Shift-Tab ↑","上一字段"),
+        key("Ctrl-U",     "清空当前字段"),
+        key("Enter/Ctrl-S","保存并关闭"),
+        key("Esc",        "取消"),
+        Line::from(""),
+        Line::from(Span::styled(
+            "   按 ?、Esc、Enter 或 q 关闭帮助",
+            Style::default().fg(Color::DarkGray).italic(),
+        )),
     ];
 
+    let title = Line::from(vec![
+        Span::styled(" ? 帮助 ", Style::default().fg(accent).add_modifier(Modifier::BOLD)),
+    ]);
     f.render_widget(
         Paragraph::new(lines)
             .wrap(Wrap { trim: false })
-            .block(Block::default().borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan))
-                .title(" ? Help ")),
+            .block(rounded_block().border_style(Style::default().fg(accent)).title(title)),
         area,
     );
 }

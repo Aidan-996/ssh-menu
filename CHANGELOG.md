@@ -15,6 +15,30 @@ this project adheres to [Semantic Versioning](https://semver.org/).
 - sshfs / scp quick actions
 - Unit tests for parser and argv builder
 
+## [0.2.1] - 2026-04-24
+
+Visual polish release.
+
+### Changed
+- Rounded borders and a soft cyan RGB accent throughout the UI.
+- List rows gain a `│` separator between columns; index uses `·` beyond 9.
+- Groups auto-colorize via a stable hash → 9-color palette for instant
+  visual grouping.
+- Usage counter rendered as a dim `×N` suffix.
+- Tags rendered as `#tag` in italic blue.
+- Jump marker spelled out as `↪ name`.
+- Details panel shows the ssh command with `$ ssh ...` prefix and a
+  bottom hint line.
+- Form hints prefixed with a 💡 glyph.
+- Help overlay reorganized with section dividers and Chinese labels.
+- Empty-state and no-match states get emoji guidance (✨, 😶).
+- Header decorates with `╼ ╾` bracket glyphs.
+- Footer status text fully localized to Chinese.
+
+### Docs
+- Release notes under `.github/release-notes/` trimmed to concise
+  per-version summaries.
+
 ## [0.2.0] - 2026-04-24
 
 Major TUI overhaul with rich visuals, usage tracking, sorting, details pane,
@@ -123,7 +147,8 @@ help overlay, and quick-jump. Config model is backward-compatible.
   - `x86_64-pc-windows-msvc`
 - **MIT License**.
 
-[Unreleased]: https://github.com/Aidan-996/ssh-menu/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Aidan-996/ssh-menu/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Aidan-996/ssh-menu/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Aidan-996/ssh-menu/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Aidan-996/ssh-menu/releases/tag/v0.1.0

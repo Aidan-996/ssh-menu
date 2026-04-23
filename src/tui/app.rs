@@ -63,7 +63,7 @@ impl App {
             query: String::new(),
             list_state: ListState::default(),
             mode: Mode::Normal,
-            status: "Press ? for help  •  Enter=connect  a=add  /=search  q=quit".into(),
+            status: "按 ? 查看帮助 · Enter 连接 · a 添加 · / 搜索 · q 退出".into(),
             filtered: vec![],
             exit: None,
             show_details: true,
