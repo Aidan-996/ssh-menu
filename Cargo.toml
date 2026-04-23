@@ -1,6 +1,6 @@
 [package]
 name = "ssh-menu"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 description = "Interactive TUI SSH connection manager"
 license = "MIT"

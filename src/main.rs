@@ -86,17 +86,22 @@ fn main() -> Result<()> {
             std::process::exit(code);
         }
         Cmd::Tui => {
-            let cfg = config::load(&cfg_path)?;
-            if cfg.hosts.is_empty() {
+            let initial = config::load(&cfg_path)?;
+            if initial.hosts.is_empty() {
                 eprintln!("No hosts yet. Either:");
                 eprintln!("  - press 'a' in the TUI to add one");
                 eprintln!("  - run: ssh-menu import");
                 eprintln!("  - edit {}", cfg_path.display());
                 eprintln!();
             }
-            let picked = tui::run(cfg.clone(), cfg_path.clone())?;
-            if let Some(h) = picked {
-                // Update usage stats in the on-disk config.
+            // Outer loop: after each ssh exit we reopen the TUI with fresh
+            // config (so the updated use_count/last_used are reflected).
+            loop {
+                let cfg = config::load(&cfg_path).unwrap_or_default();
+                let picked = tui::run(cfg.clone(), cfg_path.clone())?;
+                let Some(h) = picked else { break; };
+
+                // Update usage stats before connecting.
                 let mut cfg2 = config::load(&cfg_path).unwrap_or(cfg.clone());
                 if let Some(idx) = cfg2.hosts.iter().position(|x| x.name == h.name) {
                     cfg2.hosts[idx].last_used = Some(ssh::now_rfc3339());
@@ -104,11 +109,36 @@ fn main() -> Result<()> {
                     let _ = config::save(&cfg_path, &cfg2);
                 }
                 let args = ssh::build_ssh_args(&cfg, &h);
-                eprintln!("$ ssh {}", args.join(" "));
-                let code = ssh::connect(&cfg, &h)?;
-                std::process::exit(code);
+                eprintln!();
+                eprintln!("\x1b[36m  ▶ 连接 {} ({}@{})\x1b[0m",
+                    h.name, h.user, h.host);
+                eprintln!("\x1b[90m  $ ssh {}\x1b[0m", args.join(" "));
+                eprintln!();
+                let code = ssh::connect(&cfg, &h).unwrap_or(1);
+                eprintln!();
+                eprintln!("\x1b[90m  ── {} 已断开（退出码 {}），按任意键返回菜单 ──\x1b[0m",
+                    h.name, code);
+                wait_for_keypress();
             }
         }
     }
     Ok(())
+}
+
+/// Block until the user presses any key. Falls back to reading a line
+/// if raw-mode is unavailable (very unusual).
+fn wait_for_keypress() {
+    use crossterm::event::{self, Event, KeyEventKind};
+    use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+    if enable_raw_mode().is_ok() {
+        loop {
+            if let Ok(Event::Key(k)) = event::read() {
+                if k.kind == KeyEventKind::Press { break; }
+            }
+        }
+        let _ = disable_raw_mode();
+    } else {
+        let mut s = String::new();
+        let _ = std::io::stdin().read_line(&mut s);
+    }
 }
