@@ -48,10 +48,21 @@ jobs:
         shell: pwsh
         run: |
           Compress-Archive -Path target\${{ matrix.target }}\release\${{ matrix.bin }} -DestinationPath ssh-menu-${{ matrix.target }}.zip
+      - name: Resolve release notes file
+        id: notes
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          FILE=".github/release-notes/${TAG}.md"
+          if [ -f "$FILE" ]; then
+            echo "path=$FILE" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=CHANGELOG.md" >> "$GITHUB_OUTPUT"
+          fi
       - name: Upload
         uses: softprops/action-gh-release@v2
         with:
-          body_path: CHANGELOG.md
+          body_path: ${{ steps.notes.outputs.path }}
           generate_release_notes: false
           files: |
             ssh-menu-${{ matrix.target }}.tar.gz
