@@ -117,6 +117,10 @@ fn draw_header(f: &mut ratatui::Frame, area: Rect, app: &App) {
                 Span::styled("   ", Style::default()),
                 Span::styled(" ? ", Style::default().fg(BG).bg(WARNING).add_modifier(Modifier::BOLD)),
                 Span::styled(" 帮助 ", Style::default().fg(MUTED)),
+                Span::styled(" │ ", Style::default().fg(Color::Rgb(40, 48, 72))),
+                Span::styled("© 2026 ", Style::default().fg(MUTED)),
+                Span::styled("Aidan-996", Style::default().fg(TEXT).add_modifier(Modifier::BOLD)),
+                Span::styled("  MIT", Style::default().fg(MUTED)),
             ])
         } else {
             Line::from(vec![
