@@ -1,46 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ssh-menu icon
+  Concept: "constellation" — a navigator connecting hosts through a bastion.
+  Central hub with radiating lines to 5 satellite nodes, forming a stylized
+  SSH mesh. Zero terminal clichés, zero AI-style sparkles.
+-->
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"  stop-color="#0F111A"/>
-      <stop offset="100%" stop-color="#1A1F35"/>
+      <stop offset="0%"  stop-color="#0E1020"/>
+      <stop offset="100%" stop-color="#1B1E38"/>
     </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"  stop-color="#7FDBFF"/>
-      <stop offset="100%" stop-color="#AA82FF"/>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#7FDBFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#AA82FF" stop-opacity="0.9"/>
     </linearGradient>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <radialGradient id="hub" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%"  stop-color="#AEEBFF"/>
+      <stop offset="70%" stop-color="#7FDBFF"/>
+      <stop offset="100%" stop-color="#4AA8D0"/>
+    </radialGradient>
+    <radialGradient id="node" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%"  stop-color="#DCC9FF"/>
+      <stop offset="70%" stop-color="#AA82FF"/>
+      <stop offset="100%" stop-color="#6B4AB8"/>
+    </radialGradient>
+    <filter id="soft" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="1.4"/>
     </filter>
   </defs>
 
-  <!-- Rounded dark background -->
-  <rect x="0" y="0" width="256" height="256" rx="48" ry="48" fill="url(#bg)"/>
+  <!-- Rounded dark background with subtle inner border -->
+  <rect x="0" y="0" width="256" height="256" rx="56" ry="56" fill="url(#bg)"/>
+  <rect x="14" y="14" width="228" height="228" rx="46" ry="46"
+        fill="none" stroke="#2C315A" stroke-width="2"/>
 
-  <!-- Outer neon frame -->
-  <rect x="10" y="10" width="236" height="236" rx="40" ry="40"
-        fill="none" stroke="url(#accent)" stroke-width="3" opacity="0.35"/>
-
-  <!-- Terminal prompt chevron >_ -->
-  <g filter="url(#glow)">
-    <polyline points="66,92 110,128 66,164"
-              fill="none" stroke="url(#accent)"
-              stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="124" y="158" width="72" height="10" rx="5" ry="5"
-          fill="url(#accent)"/>
+  <!-- Edges (connections hub <-> nodes) -->
+  <g stroke="url(#edge)" stroke-width="3" stroke-linecap="round" fill="none">
+    <line x1="128" y1="128" x2="64"  y2="72"/>
+    <line x1="128" y1="128" x2="200" y2="72"/>
+    <line x1="128" y1="128" x2="60"  y2="156"/>
+    <line x1="128" y1="128" x2="196" y2="164"/>
+    <line x1="128" y1="128" x2="128" y2="208"/>
   </g>
 
-  <!-- Three stacked "menu" dots on the right, indicating list -->
-  <g fill="#7FDBFF">
-    <circle cx="206" cy="80"  r="6"/>
-    <circle cx="206" cy="104" r="6" opacity="0.75"/>
-    <circle cx="206" cy="128" r="6" opacity="0.5"/>
+  <!-- Satellite nodes (purple) -->
+  <g>
+    <circle cx="64"  cy="72"  r="14" fill="url(#node)"/>
+    <circle cx="200" cy="72"  r="14" fill="url(#node)"/>
+    <circle cx="60"  cy="156" r="14" fill="url(#node)"/>
+    <circle cx="196" cy="164" r="14" fill="url(#node)"/>
+    <circle cx="128" cy="208" r="14" fill="url(#node)"/>
   </g>
 
-  <!-- Tiny status dot (green) lower-left accent -->
-  <circle cx="50" cy="206" r="7" fill="#6EE7B7"/>
+  <!-- Small status tick in one node to suggest "connected" -->
+  <path d="M196 164 l-4 -4 l-3 3 l7 7 l12 -12 l-3 -3 z" fill="#0E1020" opacity="0.7"/>
+
+  <!-- Central hub (cyan, larger, with soft halo) -->
+  <circle cx="128" cy="128" r="32" fill="url(#hub)" filter="url(#soft)" opacity="0.35"/>
+  <circle cx="128" cy="128" r="22" fill="url(#hub)"/>
+  <!-- Hub inner lock/arrow: minimalist diamond -->
+  <path d="M128 114 L142 128 L128 142 L114 128 Z"
+        fill="#0E1020" opacity="0.75"/>
 </svg>

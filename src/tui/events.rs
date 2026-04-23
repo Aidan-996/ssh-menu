@@ -33,7 +33,7 @@ fn handle_normal(app: &mut App, code: KeyCode, mods: KeyModifiers) {
         }
         KeyCode::Enter => {
             if let Some(h) = app.selected_host().cloned() {
-                app.exit = Some(ExitAction::Connect(h));
+                app.exit = Some(ExitAction::Connect(Box::new(h)));
             } else {
                 app.status = "no host selected — press 'a' to add one".into();
             }
@@ -106,7 +106,7 @@ fn handle_search(app: &mut App, code: KeyCode, mods: KeyModifiers) {
             // Enter in search either connects (if 1 match) or returns to normal mode
             if app.filtered.len() == 1 {
                 if let Some(h) = app.selected_host().cloned() {
-                    app.exit = Some(ExitAction::Connect(h));
+                    app.exit = Some(ExitAction::Connect(Box::new(h)));
                 }
             }
         }

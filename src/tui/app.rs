@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 pub enum ExitAction {
     Quit,
-    Connect(Host),
+    Connect(Box<Host>),
 }
 
 pub enum Mode {
@@ -97,7 +97,7 @@ impl App {
         self.filtered = indices;
         if self.filtered.is_empty() {
             self.list_state.select(None);
-        } else if self.list_state.selected().map_or(true, |s| s >= self.filtered.len()) {
+        } else if self.list_state.selected().is_none_or(|s| s >= self.filtered.len()) {
             self.list_state.select(Some(0));
         }
     }

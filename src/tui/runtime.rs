@@ -28,7 +28,7 @@ pub fn run(cfg: Config, cfg_path: PathBuf) -> Result<Option<Host>> {
 
     result?;
     match app.exit {
-        Some(ExitAction::Connect(h)) => Ok(Some(h)),
+        Some(ExitAction::Connect(h)) => Ok(Some(*h)),
         _ => Ok(None),
     }
 }
