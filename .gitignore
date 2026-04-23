@@ -1,0 +1,8 @@
+/target
+**/*.rs.bk
+Cargo.lock
+.ssh-menu.toml
+*.log
+.DS_Store
+.idea/
+.vscode/

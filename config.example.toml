@@ -1,0 +1,21 @@
+# Default ssh-menu config. Edit as you like, or use TUI (a=add, e=edit, d=delete).
+# Run `ssh-menu import` to merge entries from ~/.ssh/config.
+
+# [[hosts]]
+# name     = "prod-db"
+# host     = "db.example.com"
+# user     = "root"
+# port     = 22
+# key      = "~/.ssh/id_rsa"
+# group    = "prod"
+# tags     = ["mysql", "linux"]
+# jump     = "bastion"     # another host's `name`
+# extra    = ["-o", "ServerAliveInterval=30"]
+
+[[hosts]]
+name = "example"
+host = "example.com"
+user = "root"
+port = 22
+group = "demo"
+tags = ["sample"]
