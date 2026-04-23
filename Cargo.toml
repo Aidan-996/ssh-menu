@@ -1,6 +1,6 @@
 [package]
 name = "ssh-menu"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 description = "Interactive TUI SSH connection manager"
 license = "MIT"
@@ -8,6 +8,7 @@ repository = "https://github.com/Aidan-996/ssh-menu"
 readme = "README.md"
 keywords = ["ssh", "tui", "cli", "terminal", "manager"]
 categories = ["command-line-utilities"]
+build = "build.rs"
 
 [dependencies]
 ratatui = "0.28"
@@ -18,6 +19,11 @@ dirs = "5"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 time = { version = "0.3", features = ["formatting", "parsing", "local-offset", "macros"] }
+
+[target.'cfg(windows)'.build-dependencies]
+resvg = "0.43"
+ico = "0.4"
+winresource = "0.1"
 
 [profile.release]
 opt-level = "z"
